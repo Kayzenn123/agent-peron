@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PERON — Papan Keberangkatan KRL</title>
+<meta name="description" content="PERON: papan keberangkatan KRL ala stasiun Swiss. Pilih peron, intip jadwal (contoh), rencanakan perjalanan, simpan favorit.">
+<meta name="theme-color" content="#241a12">
+<link rel="canonical" href="https://kayzenn123.github.io/agent-peron/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PERON — Papan Keberangkatan KRL">
+<meta property="og:description" content="Berdiri di depan papan keberangkatan. Klik nomor peron, masuki jadwalnya.">
+<meta property="og:image" content="og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preload" href="assets/fonts/esteban-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/catamaran-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:'Esteban';src:url('assets/fonts/esteban-latin-400-normal.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Catamaran';src:url('assets/fonts/catamaran-latin-400-normal.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Catamaran';src:url('assets/fonts/catamaran-latin-700-normal.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'Playwrite DE Grund';src:url('assets/fonts/playwrite-de-grund-guides-latin-400-normal.woff2') format('woff2');font-weight:400;font-display:swap}
+</style>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<a class="skip" href="#papan">Lompat ke papan keberangkatan</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<filter id="goyang" x="-20%" y="-20%" width="140%" height="140%">
+<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="n" seed="7"/>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"/>
+</filter>
+<filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+</defs>
+</svg>
+
+<header class="topbar">
+  <p class="brand">PERON<span class="brand-dot">.</span></p>
+  <p class="topbar-note">papan keberangkatan · edisi malam</p>
+  <div class="topbar-ctl">
+    <button id="btn-jeda" class="ctl" aria-pressed="false">Jeda pita</button>
+    <button id="btn-gerak" class="ctl" aria-pressed="true">Gerak: nyala</button>
+  </div>
+</header>
+
+<main id="main">
+<!-- ============ PAPAN ============ -->
+<section id="papan" class="papan" aria-labelledby="judul-papan">
+  <div class="papan-inner">
+    <div class="papan-head">
+      <div class="clock-wrap" aria-label="Jam stasiun">
+        <svg class="clock" viewBox="0 0 100 100" role="img" aria-label="Jam stasiun menunjukkan waktu saat ini">
+          <circle cx="50" cy="50" r="47" class="clock-face"/>
+          <g class="clock-ticks" id="clock-ticks"></g>
+          <line id="jarum-jam" x1="50" y1="50" x2="50" y2="28" class="jarum jam"/>
+          <line id="jarum-menit" x1="50" y1="50" x2="50" y2="16" class="jarum menit"/>
+          <line id="jarum-detik" x1="50" y1="58" x2="50" y2="12" class="jarum detik"/>
+          <circle cx="50" cy="50" r="3.5" class="clock-pin"/>
+        </svg>
+        <p class="clock-digital" id="clock-digital" aria-live="off">--:--:--</p>
+      </div>
+      <div class="papan-title">
+        <p class="kicker">perhatian, perhatian</p>
+        <h1 id="judul-papan">Keberangkatan<br><span class="h1-green">kereta rel listrik</span></h1>
+        <p class="coretan kecil">jadwal di bawah ini contoh ya, bukan jadwal resmi KAI Commuter.</p>
+      </div>
+    </div>
+
+    <div class="board" role="table" aria-label="Papan keberangkatan">
+      <div class="board-head" role="row">
+        <span role="columnheader">jam</span><span role="columnheader">tujuan</span>
+        <span role="columnheader">peron</span><span role="columnheader">status</span>
+      </div>
+      <div id="flap-rows" aria-live="polite"></div>
+    </div>
+    <p class="board-note">papan berputar tiap 20 detik · klik nomor peron untuk masuk</p>
+
+    <nav class="peron-doors" aria-label="Pilih peron">
+      <p class="doors-label">masuk lewat angka —</p>
+      <div class="doors" id="doors"></div>
+    </nav>
+  </div>
+</section>
+
+<!-- ============ PITA PENGUMUMAN ============ -->
+<div class="pita" aria-label="Pita pengumuman">
+  <div class="pita-band pita-a"><div class="pita-track" id="pita-a"></div></div>
+  <div class="pita-band pita-b"><div class="pita-track" id="pita-b"></div></div>
+</div>
+
+<!-- ============ PERON ============ -->
+<section id="peron" class="tilt-a" aria-labelledby="judul-peron">
+  <div class="wrap curtain">
+    <p class="kicker">ruang peron</p>
+    <h2 id="judul-peron" class="giant-num" data-door>3</h2>
+    <p class="peron-sub" id="peron-sub">Peron 3 · lintas bogor</p>
+    <div class="strip" id="jadwal-strip" aria-label="Daftar keberangkatan peron ini"></div>
+    <p class="hint">← geser / flick strip jadwal →</p>
+  </div>
+</section>
+
+<!-- ============ PERENCANA ============ -->
+<section id="rencana" class="tilt-b" aria-labelledby="judul-rencana">
+  <div class="wrap curtain">
+    <p class="kicker">mbak pengumuman membantu</p>
+    <h2 id="judul-rencana">Rencanakan <span class="h1-green">perjalananmu</span></h2>
+    <form id="form-rencana" novalidate>
+      <div class="field">
+        <label for="dari">Dari stasiun</label>
+        <select id="dari" name="dari" required></select>
+      </div>
+      <div class="field">
+        <label for="ke">Ke stasiun</label>
+        <select id="ke" name="ke" required></select>
+      </div>
+      <div class="field">
+        <label for="jam">Jam berangkat</label>
+        <input id="jam" name="jam" type="time" value="07:30" required>
+      </div>
+      <p class="form-err" id="form-err" role="alert" hidden></p>
+      <button type="submit" class="btn-go">Cari kereta →</button>
+    </form>
+    <div id="hasil-rencana" class="hasil" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ============ ARSIP ============ -->
+<section id="arsip" class="tilt-a" aria-labelledby="judul-arsip">
+  <div class="wrap curtain">
+    <p class="kicker">kantong petugas</p>
+    <h2 id="judul-arsip">Arsip <span class="h1-green">peron</span> favorit</h2>
+    <div id="arsip-list" class="arsip-list"></div>
+    <p class="arsip-empty" id="arsip-empty">Belum ada peron favorit. Klik bintang di kartu jadwal buat nyimpen — biar besok tinggal melenggang.</p>
+    <div class="arsip-aksi">
+      <button id="btn-salin" class="ctl">Salin ringkasan</button>
+      <button id="btn-unduh" class="ctl">Unduh JSON</button>
+      <button id="btn-hapus" class="ctl danger">Hapus arsip</button>
+    </div>
+    <p class="arsip-msg" id="arsip-msg" role="status"></p>
+  </div>
+</section>
+</main>
+
+<footer class="colophon tilt-b">
+  <div class="wrap">
+    <p class="coretan besar">dibangun tangan, bukan template —</p>
+    <p>PERON · hari 26 · 30 days of code · data stasiun: KAI Commuter · jadwal: contoh · <span id="tahun"></span></p>
+    <p class="kecil">easter egg: ketik <kbd>telat</kbd> di mana saja · klik jam 5× buat mode lembur</p>
+  </div>
+</footer>
+
+<div id="hujan" aria-hidden="true"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
